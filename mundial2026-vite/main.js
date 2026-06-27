@@ -1,3 +1,37 @@
+
+// ─── NOMBRES EN ESPAÑOL ──────────────────────────────────────────────────────
+const NOMBRES_ES = {
+  'France':'Francia','Germany':'Alemania','Spain':'España','England':'Inglaterra',
+  'Portugal':'Portugal','Netherlands':'Países Bajos','Belgium':'Bélgica',
+  'Italy':'Italia','Brazil':'Brasil','Argentina':'Argentina','Uruguay':'Uruguay',
+  'Mexico':'México','United States':'Estados Unidos','Canada':'Canadá',
+  'Japan':'Japón','South Korea':'Corea del Sur','Australia':'Australia',
+  'Morocco':'Marruecos','Senegal':'Senegal','Nigeria':'Nigeria',
+  'Cameroon':'Camerún','South Africa':'Sudáfrica','Egypt':'Egipto',
+  'Tunisia':'Túnez','Saudi Arabia':'Arabia Saudita','Iran':'Irán',
+  'Iraq':'Irak','Japan':'Japón','China':'China','Indonesia':'Indonesia',
+  'New Zealand':'Nueva Zelanda','Switzerland':'Suiza','Croatia':'Croacia',
+  'Denmark':'Dinamarca','Sweden':'Suecia','Norway':'Noruega','Austria':'Austria',
+  'Serbia':'Serbia','Slovenia':'Eslovenia','Slovakia':'Eslovaquia',
+  'Poland':'Polonia','Romania':'Rumania','Czechia':'República Checa',
+  'Hungary':'Hungría','Turkey':'Türkiye','Greece':'Grecia',
+  'Scotland':'Escocia','Ukraine':'Ucrania','Albania':'Albania',
+  'Colombia':'Colombia','Ecuador':'Ecuador','Peru':'Perú','Chile':'Chile',
+  'Venezuela':'Venezuela','Paraguay':'Paraguay','Bolivia':'Bolivia',
+  'Algeria':'Argelia','Ghana':'Ghana','Mali':'Malí','Ivory Coast':'Costa de Marfil',
+  'DR Congo':'R.D. Congo','Tanzania':'Tanzania','Angola':'Angola',
+  'Cape Verde':'Cabo Verde','Panama':'Panamá','Costa Rica':'Costa Rica',
+  'Honduras':'Honduras','Jamaica':'Jamaica','Guatemala':'Guatemala',
+  'Cuba':'Cuba','Trinidad And Tobago':'Trinidad y Tobago',
+  'New Zealand':'Nueva Zelanda','Qatar':'Catar','Kuwait':'Kuwait',
+  'Uzbekistan':'Uzbekistán','Jordan':'Jordania','Bahrain':'Bahréin',
+  'Oman':'Omán','United Arab Emirates':'Emiratos Árabes',
+  '':'',
+};
+function nameES(displayName) {
+  return NOMBRES_ES[displayName] || displayName;
+}
+
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 const ESPN = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
 
@@ -273,7 +307,7 @@ function renderCard(ev, showDate=false) {
       <div class="mt">
         <div class="tb">
           <img class="tf" src="${flag(a.team.abbreviation)}" onerror="this.style.opacity=.2" alt="${a.team.shortDisplayName}">
-          <div style="min-width:0"><div class="tn">${a.team.shortDisplayName}</div></div>
+          <div style="min-width:0"><div class="tn">${nameES(a.team.shortDisplayName||a.team.displayName)}</div></div>
         </div>
         <div class="sc">
           <div class="sn${isLive?' lv':''}">${isFin||isLive?`${as2}<span style="color:var(--mu2);margin:0 2px">·</span>${hs}`:'<span style="font-size:15px;color:var(--mu)">vs</span>'}</div>
@@ -281,7 +315,7 @@ function renderCard(ev, showDate=false) {
         </div>
         <div class="tb aw">
           <img class="tf" src="${flag(h.team.abbreviation)}" onerror="this.style.opacity=.2" alt="${h.team.shortDisplayName}">
-          <div style="min-width:0"><div class="tn">${h.team.shortDisplayName}</div></div>
+          <div style="min-width:0"><div class="tn">${nameES(h.team.shortDisplayName||h.team.displayName)}</div></div>
         </div>
       </div>${oHtml}
     </div>
@@ -367,7 +401,7 @@ function renderLive() {
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
           <img class="tf" src="${flag(na.team.abbreviation)}" onerror="this.style.opacity=.2" alt="">
           <div style="flex:1">
-            <div style="font-size:13px;font-weight:600">${na.team.shortDisplayName} vs ${nh.team.shortDisplayName}</div>
+            <div style="font-size:13px;font-weight:600">${nameES(na.team.shortDisplayName)} vs ${nameES(nh.team.shortDisplayName)}</div>
             <div style="font-size:10px;color:var(--mu);margin-top:2px">${grp?'Grupo '+grp[1]+' · ':''} ${(nc.venue?.fullName||'').split(',')[0]}</div>
             <div style="font-size:11px;color:var(--cy);margin-top:2px;font-weight:600">${fmtDateAR(nxt.date)} · ${fmtAR(nxt.date)}</div>
           </div>
@@ -411,7 +445,7 @@ function renderTbl() {
       html+=`<tr class="${rc}"><td><div class="ste">
         <span class="sp ${pc}">${pos}</span>
         <img class="sfl" src="${flag(t.team.abbreviation)}" onerror="this.style.opacity=.2" alt="">
-        <span class="snm">${t.team.abbreviation}</span>
+        <span class="snm" title="${nameES(t.team.shortDisplayName||t.team.displayName)}">${t.team.abbreviation}</span>
       </div></td>
       <td>${t.pj}</td><td>${t.gg}</td><td>${t.e}</td><td>${t.p}</td>
       <td>${t.gf}</td><td>${t.gc}</td>
@@ -537,7 +571,7 @@ async function renderGoleadores() {
     html+=`<div class="scorer-row">
       <span class="scorer-pos">${i+1}</span>
       <img class="scorer-photo" src="${flag(s.abbr)}" onerror="this.style.opacity=.3" alt="">
-      <div style="flex:1;min-width:0"><div class="scorer-name">${s.name}</div><div class="scorer-team">${s.team}</div></div>
+      <div style="flex:1;min-width:0"><div class="scorer-name">${s.name}</div><div class="scorer-team">${nameES(s.team)}</div></div>
       <div class="scorer-goals">${s.goals} <span style="font-size:10px">⚽</span></div>
     </div>`;
   });
@@ -653,14 +687,14 @@ function renderStats(eid) {
   document.getElementById('st-cont').innerHTML=`
     <div class="sboard">
       <div class="ste2">
-        <div class="stt"><img class="sfl2" src="${flag(a.team.abbreviation)}" onerror="this.style.opacity=.2" alt=""><div class="stname">${a.team.shortDisplayName}</div></div>
+        <div class="stt"><img class="sfl2" src="${flag(a.team.abbreviation)}" onerror="this.style.opacity=.2" alt=""><div class="stname">${nameES(a.team.shortDisplayName||a.team.displayName)}</div></div>
         <div style="text-align:center">
           <div class="bscore">${hasD?`${as2} · ${hs}`:'–'}</div>
           <div class="stime">${lbl}</div>
           <div style="font-size:9px;color:var(--mu2);margin-top:3px">${fmtDateAR(ev.date)}</div>
           ${comp.venue?.fullName?`<div style="font-size:9px;color:var(--mu2)">📍 ${comp.venue.fullName.split(',')[0]}</div>`:''}
         </div>
-        <div class="stt"><img class="sfl2" src="${flag(h.team.abbreviation)}" onerror="this.style.opacity=.2" alt=""><div class="stname">${h.team.shortDisplayName}</div></div>
+        <div class="stt"><img class="sfl2" src="${flag(h.team.abbreviation)}" onerror="this.style.opacity=.2" alt=""><div class="stname">${nameES(h.team.shortDisplayName||h.team.displayName)}</div></div>
       </div>
     </div>
     ${stats.length
@@ -677,7 +711,7 @@ function nav(id, btn) {
   document.getElementById('v-'+id).classList.add('on');
   document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('on'));
   if (btn) btn.classList.add('on');
-  else document.querySelectorAll('.nav button')[['res','live','tbl','brk','gol'].indexOf(id)]?.classList.add('on');
+  else document.querySelectorAll('.nav button')[['res','live','tbl','gol'].indexOf(id)]?.classList.add('on');
   document.getElementById('mainScroll').scrollTop=0;
   renderView();
 }
@@ -685,8 +719,7 @@ function renderView() {
   if (curView==='res')       renderRes();
   else if (curView==='live') renderLive();
   else if (curView==='tbl')  renderTbl();
-  else if (curView==='brk')  renderBrk();
-  else if (curView==='gol')  renderGoleadores();
+    else if (curView==='gol')  renderGoleadores();
 }
 window.nav=nav; window.openStats=openStats; window.closeStats=closeStats; window.setPhase=setPhase;
 
