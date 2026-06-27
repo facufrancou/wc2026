@@ -26,9 +26,9 @@ npm run build
 
 ## APIs utilizadas
 
-- **ESPN 1 API** — Scores en tiempo real, cuotas DraftKings, canales de TV
+- **ESPN API** — Scores en tiempo real, cuotas DraftKings, canales de TV
   - `site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard`
-- **FIFA 1 API v3** — Formaciones, alineaciones con coords, goleadores, fotos de jugadores
+- **FIFA API v3** — Formaciones, alineaciones con coords, goleadores, fotos de jugadores
   - `api.fifa.com/api/v3` · idCompetition=17 · idSeason=285023
 
 Ambas gratuitas, sin API key requerida.
