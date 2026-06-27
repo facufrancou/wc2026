@@ -8,7 +8,8 @@
 <link rel="icon" href="https://a.espncdn.com/i/leaguelogos/soccer/500/4.png"/>
 <script type="module" src="/main.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;scrollbar-width:none}
+*::-webkit-scrollbar{width:0;height:0;display:none}
 :root{
   --bg:#080c12;--bg2:#0d1320;--bg3:#111927;--bg4:#161f2e;
   --b:rgba(255,255,255,.07);--b2:rgba(255,255,255,.13);
@@ -41,11 +42,12 @@ html,body{height:100%;background:var(--bg);overflow:hidden;font-family:'Inter',s
 .nav::-webkit-scrollbar{display:none}
 .nav button{flex:1;min-width:60px;background:none;border:none;border-bottom:2px solid transparent;color:var(--mu);font-size:11px;font-weight:500;padding:9px 4px;cursor:pointer;transition:all .2s;font-family:inherit;white-space:nowrap}
 .nav button.on{color:var(--cy);border-bottom-color:var(--cy)}
+.nav button.live-on{color:#ff5a5a;animation:liveNavBlink 1s infinite}
+.nav button.live-on.on{color:#ff6666;border-bottom-color:#ff3d3d}
+@keyframes liveNavBlink{0%,100%{opacity:1}50%{opacity:.35}}
 
 /* SCROLL */
-.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--bg4) transparent}
-.scroll::-webkit-scrollbar{width:3px}
-.scroll::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .view{display:none;padding:10px}
 .view.on{display:block}
 
@@ -56,8 +58,7 @@ html,body{height:100%;background:var(--bg);overflow:hidden;font-family:'Inter',s
 .bdg{margin-left:auto;background:var(--cy2);color:var(--cy);font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid rgba(0,229,255,.2)}
 
 /* PHASE STRIP */
-.pstrip{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-bottom:10px;margin-bottom:8px}
-.pstrip::-webkit-scrollbar{display:none}
+.pstrip{display:flex;gap:5px;overflow-x:auto;padding:6px 0 10px;margin-bottom:8px;position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--b)}
 .pchip{flex:none;background:var(--bg2);border:1px solid var(--b);border-radius:20px;padding:4px 10px;font-size:10px;color:var(--mu);white-space:nowrap;font-weight:500;cursor:pointer;user-select:none}
 .pchip.on{background:var(--cy2);border-color:rgba(0,229,255,.3);color:var(--cy)}
 .pchip:active{opacity:.7}
@@ -95,6 +96,8 @@ html,body{height:100%;background:var(--bg);overflow:hidden;font-family:'Inter',s
 .och{flex:1;background:var(--bg3);border:1px solid var(--b);border-radius:6px;padding:5px 6px;text-align:center}
 .olb{font-size:8px;color:var(--mu2);text-transform:uppercase;letter-spacing:.3px}
 .ov{font-size:12px;font-weight:700;color:var(--tx);margin-top:1px}
+.live-cmt{margin-top:8px;padding:7px 9px;border-radius:7px;background:rgba(255,61,0,.08);border:1px solid rgba(255,61,0,.25);font-size:10px;line-height:1.35;color:#ffd7cc}
+.live-cmt b{color:#ff8a65;font-weight:700;margin-right:4px}
 .mev{display:flex;align-items:center;gap:6px;padding:2px 0;font-size:11px;color:var(--mu)}
 .mev-min{color:var(--cy);font-weight:700;min-width:26px;font-size:10px}
 .mevs{padding:0 11px 8px}
@@ -140,7 +143,24 @@ html,body{height:100%;background:var(--bg);overflow:hidden;font-family:'Inter',s
 .bph{margin-bottom:14px}
 .bptitle{font-size:10px;color:var(--mu);letter-spacing:.8px;text-transform:uppercase;font-weight:600;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:5px}
 .bpdot{width:4px;height:4px;background:var(--cy);border-radius:50%;flex-shrink:0}
+#br-cont{overflow-x:auto;padding-bottom:10px;cursor:grab;user-select:none}
+#br-cont.dragging{cursor:grabbing}
+.bracket-board{display:flex;gap:14px;min-width:980px;--br-slot:128px}
+.br-col{width:220px;flex:0 0 220px}
+.br-col-title{font-size:11px;color:var(--tx);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--b)}
+.br-col-list{display:grid}
+.br-col-r32 .br-col-list{grid-template-rows:repeat(16,var(--br-slot))}
+.br-col-octavos .br-col-list{grid-template-rows:repeat(8,calc(var(--br-slot)*2))}
+.br-col-cuartos .br-col-list{grid-template-rows:repeat(4,calc(var(--br-slot)*4))}
+.br-col-semis .br-col-list{grid-template-rows:repeat(2,calc(var(--br-slot)*8))}
+.br-col-final .br-col-list{grid-template-rows:repeat(1,calc(var(--br-slot)*16))}
+.br-slot{position:relative;display:flex;align-items:center;justify-content:center;padding:4px 0}
+.br-slot .bm{width:100%;margin-bottom:0}
+.br-slot.connect::before{content:'';position:absolute;left:-7px;top:25%;height:50%;width:1px;background:var(--b2)}
+.br-slot.connect::after{content:'';position:absolute;left:-7px;top:50%;width:7px;height:1px;background:var(--b2)}
 .bm{background:var(--bg2);border:1px solid var(--b);border-radius:8px;margin-bottom:5px;overflow:hidden;cursor:pointer}
+.bm.br-link{position:relative}
+.bm.br-link::after{content:'';position:absolute;right:-14px;top:50%;width:14px;height:1px;background:var(--b2)}
 .bt{display:flex;align-items:center;gap:7px;padding:8px 11px;border-bottom:1px solid rgba(255,255,255,.05)}
 .bt:last-child{border-bottom:none}
 .bt.win{background:rgba(0,229,255,.05)}
@@ -235,9 +255,9 @@ html,body{height:100%;background:var(--bg);overflow:hidden;font-family:'Inter',s
 
   <nav class="nav">
     <button class="on" onclick="nav('res',this)">Resultados</button>
-    <button onclick="nav('live',this)">&#9679; En Vivo</button>
+    <button id="liveNavBtn" onclick="nav('live',this)">&#9679; En Vivo</button>
     <button onclick="nav('tbl',this)">Tablas</button>
-    
+    <button onclick="nav('llave',this)">Ver llave</button>
     <button onclick="nav('gol',this)">Goleadores</button>
   </nav>
 
@@ -267,6 +287,10 @@ html,body{height:100%;background:var(--bg);overflow:hidden;font-family:'Inter',s
     <div class="view" id="v-live">
       <div class="sh"><div class="dot4"></div><h2>En vivo ahora</h2><span class="bdg" id="lc">0</span></div>
       <div id="lv-cont"><div class="skel" style="height:92px"></div></div>
+      <div class="app-footer">
+        Datos: ESPN API + FIFA API · Actualización automática
+        <div class="footer-brand">Creado y desarrollado por <a href="https://krevik.ar" target="_blank">KREVIK</a></div>
+      </div>
     </div>
 
     <!-- TABLAS -->
@@ -277,6 +301,20 @@ html,body{height:100%;background:var(--bg);overflow:hidden;font-family:'Inter',s
         <div class="lgi"><div class="lgd" style="background:rgba(255,179,0,.5)"></div>Posible 3°</div>
       </div>
       <div id="tb-cont"><div class="skel" style="height:200px"></div></div>
+      <div class="app-footer">
+        Datos: ESPN API + FIFA API · Actualización automática
+        <div class="footer-brand">Creado y desarrollado por <a href="https://krevik.ar" target="_blank">KREVIK</a></div>
+      </div>
+    </div>
+
+    <!-- LLAVE -->
+    <div class="view" id="v-llave">
+      <div class="sh"><div class="dot4"></div><h2>Llave eliminatoria</h2></div>
+      <div id="br-cont"><div class="skel" style="height:120px"></div><div class="skel" style="height:120px"></div><div class="skel" style="height:120px"></div></div>
+      <div class="app-footer">
+        Datos: ESPN API + FIFA API · Actualización automática
+        <div class="footer-brand">Creado y desarrollado por <a href="https://krevik.ar" target="_blank">KREVIK</a></div>
+      </div>
     </div>
 
 
@@ -284,6 +322,10 @@ html,body{height:100%;background:var(--bg);overflow:hidden;font-family:'Inter',s
     <div class="view" id="v-gol">
       <div class="sh"><div class="dot4"></div><h2>Goleadores del torneo</h2></div>
       <div id="goal-cont"><div class="skel" style="height:60px"></div><div class="skel" style="height:60px"></div><div class="skel" style="height:60px"></div></div>
+      <div class="app-footer">
+        Datos: ESPN API + FIFA API · Actualización automática
+        <div class="footer-brand">Creado y desarrollado por <a href="https://krevik.ar" target="_blank">KREVIK</a></div>
+      </div>
     </div>
 
   </div>
