@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<meta name="description" content="Copa Mundial FIFA 2026 — Resultados, formaciones, tablas y llave en tiempo real"/>
+<title>WC 2026 · Copa Mundial FIFA</title>
+<link rel="icon" href="https://a.espncdn.com/i/leaguelogos/soccer/500/4.png"/>
+<script type="module" src="/main.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#080c12;--bg2:#0d1320;--bg3:#111927;--bg4:#161f2e;
+  --b:rgba(255,255,255,.07);--b2:rgba(255,255,255,.13);
+  --tx:#e8f0ff;--mu:#6b7a99;--mu2:#4a566e;
+  --cy:#00e5ff;--cy2:rgba(0,229,255,.12);
+  --gn:#00ff88;--gn2:rgba(0,255,136,.1);
+  --am:#ffb300;--am2:rgba(255,179,0,.1);
+  --rd:#ff4444;--rd2:rgba(255,68,68,.1);
+  --lv:#ff3d00;--lv2:rgba(255,61,0,.15);
+}
+html,body{height:100%;background:var(--bg);overflow:hidden;font-family:'Inter',system-ui,sans-serif;color:var(--tx)}
+#app{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;background:var(--bg)}
+#app.hidden{display:none!important}
+
+/* TOPBAR */
+.topbar{flex-shrink:0;background:var(--bg2);border-bottom:1px solid var(--b);padding:10px 14px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:8px}
+.brand img{width:26px;height:26px;object-fit:contain}
+.brand-name{font-size:17px;font-weight:700;color:var(--cy);letter-spacing:.5px}
+.brand-tag{font-size:10px;color:var(--mu);background:var(--bg3);border:1px solid var(--b2);padding:2px 7px;border-radius:20px}
+.upd-info{font-size:10px;color:var(--mu2);text-align:right;line-height:1.4;max-width:140px}
+.upd-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--gn);margin-right:4px;vertical-align:middle}
+.upd-dot.fetching{background:var(--am);animation:pulse 1s infinite}
+.upd-dot.err{background:var(--rd)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.live-ind{display:none;align-items:center;gap:4px;font-size:10px;color:var(--lv);font-weight:600;background:var(--lv2);padding:3px 8px;border-radius:10px;border:1px solid rgba(255,61,0,.3)}
+
+/* NAV */
+.nav{flex-shrink:0;display:flex;overflow-x:auto;scrollbar-width:none;background:var(--bg);border-bottom:1px solid var(--b)}
+.nav::-webkit-scrollbar{display:none}
+.nav button{flex:1;min-width:60px;background:none;border:none;border-bottom:2px solid transparent;color:var(--mu);font-size:11px;font-weight:500;padding:9px 4px;cursor:pointer;transition:all .2s;font-family:inherit;white-space:nowrap}
+.nav button.on{color:var(--cy);border-bottom-color:var(--cy)}
+
+/* SCROLL */
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--bg4) transparent}
+.scroll::-webkit-scrollbar{width:3px}
+.scroll::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.view{display:none;padding:10px}
+.view.on{display:block}
+
+/* SEC HEADER */
+.sh{display:flex;align-items:center;gap:7px;margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid var(--b)}
+.sh h2{font-size:11px;font-weight:600;color:var(--mu);letter-spacing:1px;text-transform:uppercase}
+.dot4{width:4px;height:4px;background:var(--cy);border-radius:50%}
+.bdg{margin-left:auto;background:var(--cy2);color:var(--cy);font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid rgba(0,229,255,.2)}
+
+/* PHASE STRIP */
+.pstrip{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-bottom:10px;margin-bottom:8px}
+.pstrip::-webkit-scrollbar{display:none}
+.pchip{flex:none;background:var(--bg2);border:1px solid var(--b);border-radius:20px;padding:4px 10px;font-size:10px;color:var(--mu);white-space:nowrap;font-weight:500;cursor:pointer;user-select:none}
+.pchip.on{background:var(--cy2);border-color:rgba(0,229,255,.3);color:var(--cy)}
+.pchip:active{opacity:.7}
+
+/* MATCH CARD */
+.mc{background:var(--bg2);border:1px solid var(--b);border-radius:10px;margin-bottom:7px;overflow:hidden;cursor:pointer;transition:border-color .15s}
+.mc:active{opacity:.82}
+.mc.lv{border-color:rgba(255,61,0,.4)}
+.next-card{border-color:rgba(0,229,255,.15)}
+.mhdr{display:flex;align-items:center;justify-content:space-between;padding:6px 11px;background:var(--bg3);border-bottom:1px solid var(--b)}
+.mgrp{font-size:10px;color:var(--mu);font-weight:500}
+.sb{font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:.4px}
+.s-pre{background:rgba(107,122,153,.12);color:var(--mu)}
+.s-live{background:var(--lv2);color:var(--lv);animation:livep 2s infinite}
+.s-fin{background:var(--gn2);color:var(--gn)}
+.s-ht{background:var(--am2);color:var(--am)}
+@keyframes livep{0%,100%{opacity:1}50%{opacity:.6}}
+.mbody{padding:11px}
+.mt{display:flex;align-items:center;gap:5px}
+.tb{flex:1;display:flex;align-items:center;gap:7px;min-width:0}
+.tb.aw{flex-direction:row-reverse;text-align:right}
+.tf{width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid var(--b2);background:var(--bg3);flex-shrink:0}
+.tn{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ldot{display:inline-block;width:5px;height:5px;background:var(--lv);border-radius:50%;animation:livep 1.4s infinite;margin-right:3px;vertical-align:middle}
+.sc{text-align:center;min-width:68px;flex-shrink:0}
+.sn{font-size:26px;font-weight:700;letter-spacing:2px;line-height:1;font-variant-numeric:tabular-nums}
+.sn.lv{color:var(--lv)}
+.sk{font-size:10px;color:var(--mu);margin-top:3px}
+.mfoot{padding:5px 11px;border-top:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.2)}
+.ven{font-size:9px;color:var(--mu2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:56%}
+.tvrow{display:flex;align-items:center;gap:4px}
+.tvch{font-size:9px;background:var(--bg4);border:1px solid var(--b);color:var(--mu);padding:1px 5px;border-radius:3px}
+.sarr{font-size:10px;color:var(--cy)}
+.orow{display:flex;gap:5px;margin-top:8px}
+.och{flex:1;background:var(--bg3);border:1px solid var(--b);border-radius:6px;padding:5px 6px;text-align:center}
+.olb{font-size:8px;color:var(--mu2);text-transform:uppercase;letter-spacing:.3px}
+.ov{font-size:12px;font-weight:700;color:var(--tx);margin-top:1px}
+.mev{display:flex;align-items:center;gap:6px;padding:2px 0;font-size:11px;color:var(--mu)}
+.mev-min{color:var(--cy);font-weight:700;min-width:26px;font-size:10px}
+.mevs{padding:0 11px 8px}
+.ev-date{font-size:9px;color:var(--cy);background:var(--cy2);padding:1px 5px;border-radius:8px;margin-left:4px;font-weight:600}
+.date-group-hdr{font-size:11px;font-weight:600;color:var(--cy);letter-spacing:.5px;padding:10px 4px 4px;text-transform:uppercase;border-bottom:1px solid var(--b);margin-bottom:6px}
+
+/* SKEL */
+.skel{background:linear-gradient(90deg,var(--bg2) 0%,var(--bg3) 50%,var(--bg2) 100%);background-size:200% 100%;animation:sh 1.4s infinite;border-radius:10px;margin-bottom:7px}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.empty{text-align:center;padding:40px 16px;color:var(--mu)}
+.empty .ei{font-size:36px;margin-bottom:12px}
+
+/* STANDINGS */
+.gb{margin-bottom:14px}
+.gtt{font-size:14px;font-weight:700;color:var(--cy);letter-spacing:.5px;margin-bottom:7px;display:flex;align-items:center;gap:8px}
+.gtt::after{content:'';flex:1;height:1px;background:var(--b)}
+.stbl{width:100%;border-collapse:collapse;table-layout:fixed}
+.stbl th{font-size:9px;color:var(--mu2);text-align:center;padding:3px 2px;letter-spacing:.3px;text-transform:uppercase;font-weight:500}
+.stbl th:first-child{text-align:left;width:38%}
+.stbl td{padding:6px 2px;text-align:center;border-top:1px solid rgba(255,255,255,.04);font-size:11px}
+.stbl td:first-child{text-align:left}
+.stbl tr.q2 td{background:rgba(0,229,255,.025)}
+.stbl tr.q3 td{background:rgba(255,179,0,.02)}
+.sp{width:17px;height:17px;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;margin-right:4px;flex-shrink:0}
+.p12{background:rgba(0,229,255,.15);color:var(--cy)}
+.p3{background:rgba(255,179,0,.12);color:var(--am)}
+.p4{background:rgba(107,122,153,.08);color:var(--mu)}
+.ste{display:flex;align-items:center;gap:4px}
+.sfl{width:17px;height:17px;border-radius:50%;object-fit:cover;flex-shrink:0}
+.snm{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pts{font-weight:700;color:var(--tx)}
+.gdp{color:var(--gn)}.gdn{color:var(--rd)}
+.fdots{display:flex;gap:2px}
+.fdot{width:11px;height:11px;border-radius:2px;font-size:6px;display:flex;align-items:center;justify-content:middle;justify-content:center;font-weight:700}
+.fdot.G{background:var(--gn2);color:var(--gn);border:1px solid rgba(0,255,136,.2)}
+.fdot.E{background:var(--am2);color:var(--am);border:1px solid rgba(255,179,0,.2)}
+.fdot.P{background:var(--rd2);color:var(--rd);border:1px solid rgba(255,68,68,.2)}
+.legend-tbl{display:flex;gap:10px;font-size:9px;color:var(--mu);margin-bottom:10px;flex-wrap:wrap}
+.lgi{display:flex;align-items:center;gap:4px}
+.lgd{width:8px;height:8px;border-radius:2px}
+
+/* BRACKET */
+.bph{margin-bottom:14px}
+.bptitle{font-size:10px;color:var(--mu);letter-spacing:.8px;text-transform:uppercase;font-weight:600;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:5px}
+.bpdot{width:4px;height:4px;background:var(--cy);border-radius:50%;flex-shrink:0}
+.bm{background:var(--bg2);border:1px solid var(--b);border-radius:8px;margin-bottom:5px;overflow:hidden;cursor:pointer}
+.bt{display:flex;align-items:center;gap:7px;padding:8px 11px;border-bottom:1px solid rgba(255,255,255,.05)}
+.bt:last-child{border-bottom:none}
+.bt.win{background:rgba(0,229,255,.05)}
+.bt.win .btn{color:var(--cy)}
+.bt.tbd{opacity:.3}
+.bt.tent .btn{color:var(--am)!important}
+.bfl{width:20px;height:20px;border-radius:50%;object-fit:cover;flex-shrink:0}
+.btn{flex:1;font-size:12px;font-weight:500}
+.bsc{font-size:16px;font-weight:700;min-width:18px;text-align:right;font-variant-numeric:tabular-nums}
+.bdt{font-size:9px;color:var(--mu2);padding:4px 11px;background:var(--bg3);border-top:1px solid var(--b)}
+.btbd-icon{width:20px;height:20px;border-radius:50%;background:var(--bg4);border:1px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--mu2);flex-shrink:0}
+.tent-badge{font-size:8px;background:var(--am2);color:var(--am);border:1px solid rgba(255,179,0,.3);padding:1px 5px;border-radius:8px;margin-left:5px;vertical-align:middle;font-weight:600}
+
+/* GOLEADORES */
+.scorer-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border:1px solid var(--b);border-radius:9px;margin-bottom:6px}
+.scorer-pos{font-size:14px;font-weight:700;color:var(--cy);min-width:20px;text-align:center}
+.scorer-photo{width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid var(--b2);flex-shrink:0}
+.scorer-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scorer-team{font-size:10px;color:var(--mu);margin-top:2px}
+.scorer-goals{font-size:18px;font-weight:700;color:var(--gn);flex-shrink:0}
+
+/* STATS OVERLAY */
+#statsv{display:none;flex-direction:column;height:100dvh;background:var(--bg);overflow:hidden;max-width:480px;margin:0 auto}
+#statsv.on{display:flex}
+.shdr2{flex-shrink:0;display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--bg2);border-bottom:1px solid var(--b)}
+.backbtn{background:var(--bg3);border:1px solid var(--b2);color:var(--cy);padding:7px 12px;border-radius:7px;font-size:12px;cursor:pointer;font-family:inherit}
+.backbtn:active{opacity:.7}
+.sttl{font-size:13px;font-weight:600}
+.statsscroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px}
+.sboard{background:var(--bg2);border:1px solid var(--b);border-radius:10px;padding:14px;margin-bottom:12px;text-align:center}
+.ste2{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px}
+.stt{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px}
+.sfl2{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--b2)}
+.stname{font-size:13px;font-weight:700}
+.bscore{font-size:42px;font-weight:700;color:var(--cy);letter-spacing:6px;line-height:1;font-variant-numeric:tabular-nums}
+.stime{font-size:12px;color:var(--mu);margin-top:3px}
+.stlbl{font-size:10px;color:var(--mu);letter-spacing:.8px;text-transform:uppercase;font-weight:600;margin:12px 0 7px}
+.strow{display:flex;align-items:center;gap:5px;margin-bottom:7px}
+.svv{font-size:12px;font-weight:700;min-width:26px;text-align:right;color:var(--cy)}
+.svv.aw{color:var(--tx);text-align:left}
+.slbl{flex:1;text-align:center;font-size:10px;color:var(--mu)}
+.sbar{flex:1;height:3px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.sbh{height:100%;background:var(--cy);border-radius:2px;transition:width .8s ease}
+.sbar.aw{display:flex;justify-content:flex-end}
+.sba{height:100%;background:rgba(255,255,255,.2);border-radius:2px;transition:width .8s ease}
+.tl{position:relative;padding-left:22px}
+.tl::before{content:'';position:absolute;left:7px;top:0;bottom:0;width:1px;background:var(--b)}
+.ti{position:relative;margin-bottom:9px}
+.tdot{position:absolute;left:-19px;top:4px;width:7px;height:7px;border-radius:50%;background:var(--bg3);border:2px solid var(--b2)}
+.tdot.g{background:var(--gn);border-color:var(--gn)}
+.tdot.y{background:var(--am);border-color:var(--am)}
+.tdot.r{background:var(--rd);border-color:var(--rd)}
+.tcon{background:var(--bg2);border:1px solid var(--b);border-radius:7px;padding:6px 9px}
+.tmin{font-size:9px;color:var(--cy);font-weight:700}
+.tdesc{font-size:11px;margin-top:1px;font-weight:600}
+
+/* CANCHA */
+.pitch-legend{display:flex;justify-content:center;gap:16px;margin-bottom:8px}
+.pl-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu)}
+.pl-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+/* PRÓXIMO PARTIDO */
+.nextcard{background:var(--bg2);border:1px solid var(--b2);border-radius:10px;padding:14px;margin-top:10px;cursor:pointer}
+.nextcard:active{opacity:.8}
+.nextlbl{font-size:9px;color:var(--cy);letter-spacing:.8px;text-transform:uppercase;font-weight:700;margin-bottom:9px}
+.cdwn{font-size:30px;font-weight:700;color:var(--tx);text-align:center;letter-spacing:2px;font-variant-numeric:tabular-nums;margin:4px 0}
+.cdlbl{font-size:10px;color:var(--mu);text-align:center}
+
+/* FOOTER */
+.app-footer{text-align:center;padding:14px 10px 18px;font-size:10px;color:var(--mu2);border-top:1px solid var(--b);margin-top:6px}
+.footer-brand{margin-top:5px;font-size:11px;font-weight:600}
+.footer-brand a{color:#00ff88;text-decoration:none;border-bottom:1px solid rgba(0,255,136,.3)}
+.footer-brand a:hover{border-bottom-color:#00ff88}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <div class="brand">
+      <img src="https://a.espncdn.com/i/leaguelogos/soccer/500/4.png" alt="FIFA">
+      <span class="brand-name">WC 2026</span>
+      <span class="brand-tag">USA · CAN · MEX</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span class="live-ind" id="live-indicator"><span class="ldot"></span>EN VIVO</span>
+      <div class="upd-info">
+        <span class="upd-dot" id="updDot"></span>
+        <span id="updTxt">Cargando...</span>
+      </div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <button class="on" onclick="nav('res',this)">Resultados</button>
+    <button onclick="nav('live',this)">&#9679; En Vivo</button>
+    <button onclick="nav('tbl',this)">Tablas</button>
+    <button onclick="nav('brk',this)">Llave</button>
+    <button onclick="nav('gol',this)">Goleadores</button>
+  </nav>
+
+  <div class="scroll" id="mainScroll">
+
+    <!-- RESULTADOS -->
+    <div class="view on" id="v-res">
+      <div class="pstrip">
+        <div class="pchip on" onclick="setPhase('hoy',this)">Hoy</div>
+        <div class="pchip" onclick="setPhase('todos-espn',this)">Todos</div>
+        <div class="pchip" onclick="setPhase('grupo',this)">Grupos</div>
+        <div class="pchip" onclick="setPhase('r32',this)">Ronda de 32</div>
+        <div class="pchip" onclick="setPhase('octavos',this)">Octavos</div>
+        <div class="pchip" onclick="setPhase('cuartos',this)">Cuartos</div>
+        <div class="pchip" onclick="setPhase('semis',this)">Semis</div>
+        <div class="pchip" onclick="setPhase('final',this)">Final</div>
+      </div>
+      <div class="sh"><div class="dot4"></div><h2 id="resSectionTitle">Partidos de hoy</h2><span class="bdg" id="mc">–</span></div>
+      <div id="mc-cont"><div class="skel" style="height:92px"></div><div class="skel" style="height:92px"></div><div class="skel" style="height:92px"></div></div>
+      <div class="app-footer">
+        Datos: ESPN API + FIFA API · Actualización automática
+        <div class="footer-brand">Creado y desarrollado por <a href="https://krevik.ar" target="_blank">KREVIK</a></div>
+      </div>
+    </div>
+
+    <!-- EN VIVO -->
+    <div class="view" id="v-live">
+      <div class="sh"><div class="dot4"></div><h2>En vivo ahora</h2><span class="bdg" id="lc">0</span></div>
+      <div id="lv-cont"><div class="skel" style="height:92px"></div></div>
+    </div>
+
+    <!-- TABLAS -->
+    <div class="view" id="v-tbl">
+      <div class="sh"><div class="dot4"></div><h2>Tablas de posiciones</h2></div>
+      <div class="legend-tbl">
+        <div class="lgi"><div class="lgd" style="background:rgba(0,229,255,.5)"></div>Clasifican (1°–2°)</div>
+        <div class="lgi"><div class="lgd" style="background:rgba(255,179,0,.5)"></div>Posible 3°</div>
+      </div>
+      <div id="tb-cont"><div class="skel" style="height:200px"></div></div>
+    </div>
+
+    <!-- LLAVE -->
+    <div class="view" id="v-brk">
+      <div class="sh"><div class="dot4"></div><h2>Llave del torneo</h2></div>
+      <div id="bk-cont"><div class="skel" style="height:130px"></div></div>
+    </div>
+
+    <!-- GOLEADORES -->
+    <div class="view" id="v-gol">
+      <div class="sh"><div class="dot4"></div><h2>Goleadores del torneo</h2></div>
+      <div id="goal-cont"><div class="skel" style="height:60px"></div><div class="skel" style="height:60px"></div><div class="skel" style="height:60px"></div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- STATS SCREEN -->
+<div id="statsv">
+  <div class="shdr2">
+    <button class="backbtn" onclick="closeStats()">← Volver</button>
+    <span class="sttl" id="st-title"></span>
+  </div>
+  <div class="statsscroll" id="st-cont"></div>
+</div>
+
+<span id="mc-all" style="display:none">0</span>
+</body>
+</html>
