@@ -17,6 +17,7 @@ let allEvents = [], groupStandings = {};
 let curView = 'res', curPhase = 'hoy';
 let autoRef = null, cdInterval = null, statsEid = null;
 let liveCommentCache = {};
+let statsReqToken = 0;
 
 const pad = n => String(n).padStart(2,'0');
 const flag = a => {
@@ -608,42 +609,80 @@ function renderRes() {
 }
 
 function toSpanishComment(text='') {
-  let out=(text||'').trim();
+  let out=(text||'').replace(/\s+/g,' ').trim();
   if(!out) return '';
-  out=out
-    .replace(/^Foul by\s+(.+)\.$/i,'Falta de $1.')
-    .replace(/^(.+)\s+wins a free kick in the defensive half\.$/i,'$1 gana un tiro libre en campo propio.')
-    .replace(/^(.+)\s+wins a free kick in the attacking half\.$/i,'$1 gana un tiro libre en campo rival.')
-    .replace(/^Corner,\s*([^\.]+)\.\s*Conceded by\s+(.+)\.$/i,'Corner para $1. Cedido por $2.')
-    .replace(/^Attempt missed\.\s*(.+)$/i,'Remate desviado. $1')
-    .replace(/hits the left post with a right footed shot from outside the box\./ig,'pega en el palo izquierdo con un remate de derecha desde fuera del area.')
-    .replace(/hits the right post with a left footed shot from outside the box\./ig,'pega en el palo derecho con un remate de izquierda desde fuera del area.')
-    .replace(/Assisted by\s+(.+)\s+following a fast break\./ig,'Asistencia de $1 tras un contraataque.')
-    .replace(/header from the centre of the box/ig,'cabezazo desde el centro del area')
-    .replace(/following a set piece situation\./ig,'tras una jugada de pelota parada.')
-    .replace(/from outside the box/ig,'desde fuera del area')
-    .replace(/right footed shot/ig,'remate de derecha')
-    .replace(/left footed shot/ig,'remate de izquierda');
+
+  const tpl=[
+    [/^Lineups are announced and players are warming up\.?$/i,()=> 'Ya estan confirmadas las alineaciones y los jugadores hacen la entrada en calor.'],
+    [/^The match is about to start\.?$/i,()=> 'El partido esta por comenzar.'],
+    [/^Kick off\.?$/i,()=> 'Comenzo el partido.'],
+    [/^Half time\.?$/i,()=> 'Final del primer tiempo.'],
+    [/^Second half begins\.?$/i,()=> 'Comenzo el segundo tiempo.'],
+    [/^Full time\.?$/i,()=> 'Final del partido.'],
+    [/^Foul by\s+(.+)\.$/i,(m,p1)=>`Falta de ${p1}.`],
+    [/^(.+)\s+wins a free kick in the defensive half\.$/i,(m,p1)=>`${p1} gana un tiro libre en campo propio.`],
+    [/^(.+)\s+wins a free kick in the attacking half\.$/i,(m,p1)=>`${p1} gana un tiro libre en campo rival.`],
+    [/^Corner,\s*([^\.]+)\.\s*Conceded by\s+(.+)\.$/i,(m,p1,p2)=>`Corner para ${p1}. Cedido por ${p2}.`],
+    [/^Attempt missed\.\s*(.+)$/i,(m,p1)=>`Remate desviado. ${p1}`],
+    [/^Goal!\s*(.+)$/i,(m,p1)=>`Gol! ${p1}`],
+    [/^Substitution[:|,]\s*([^\.]+)\.\s*(.+?)\s+replaces\s+(.+?)(?:\s+because of an injury)?\.?$/i,(m,p1,p2,p3)=>`Sustitucion: ${p1}. ${p2} reemplaza a ${p3}.`],
+    [/^Substitution[:|,]\s*([^\.]+)\.?$/i,(m,p1)=>`Sustitucion: ${p1}.`],
+    [/^(.+)\s+is shown the yellow card for a bad foul\.$/i,(m,p1)=>`${p1} recibe tarjeta amarilla por una falta.`],
+    [/^(.+)\s+is shown the red card\.?$/i,(m,p1)=>`${p1} recibe tarjeta roja.`],
+    [/^(.+)\s+is shown the red card for a bad foul\.$/i,(m,p1)=>`${p1} recibe tarjeta roja por una falta.`],
+    [/^Offside,\s*(.+)$/i,(m,p1)=>`Fuera de juego de ${p1}.`],
+    [/^Penalty\s+([^\.]+)\.$/i,(m,p1)=>`Penal: ${p1}.`]
+  ];
+
+  for(const [rx,fn] of tpl){
+    const m=out.match(rx);
+    if(m) return fn(...m).replace(/\s+/g,' ').trim();
+  }
+
   const reps=[
-    [/Lineups are announced and players are warming up\.?/ig,'Ya estan confirmadas las alineaciones y los jugadores hacen la entrada en calor.'],
-    [/The match is about to start\.?/ig,'El partido esta por comenzar.'],
-    [/Kick off\.?/ig,'Comenzo el partido.'],
-    [/Half time\.?/ig,'Final del primer tiempo.'],
-    [/Second half begins\.?/ig,'Comenzo el segundo tiempo.'],
-    [/Full time\.?/ig,'Final del partido.'],
-    [/Goal!/ig,'Gol!'],
-    [/Yellow card/ig,'Tarjeta amarilla'],
-    [/Red card/ig,'Tarjeta roja'],
-    [/Substitution/ig,'Sustitucion'],
+    [/Assisted by\s+(.+)\s+following a fast break\./ig,'Asistencia de $1 tras un contraataque.'],
+    [/following a set piece situation\./ig,'tras una jugada de pelota parada.'],
+    [/hits the left post/ig,'pega en el palo izquierdo'],
+    [/hits the right post/ig,'pega en el palo derecho'],
+    [/header from the centre of the box/ig,'cabezazo desde el centro del area'],
+    [/from outside the box/ig,'desde fuera del area'],
+    [/from the centre of the box/ig,'desde el centro del area'],
+    [/right footed shot/ig,'remate de derecha'],
+    [/left footed shot/ig,'remate de izquierda'],
+    [/wins a free kick/ig,'gana un tiro libre'],
+    [/in the defensive half/ig,'en campo propio'],
+    [/in the attacking half/ig,'en campo rival'],
+    [/conceded by/ig,'cedido por'],
+    [/attempt missed/ig,'remate desviado'],
+    [/saved/ig,'atajado'],
+    [/blocked/ig,'bloqueado'],
+    [/free kick/ig,'tiro libre'],
+    [/yellow card/ig,'tarjeta amarilla'],
+    [/red card/ig,'tarjeta roja'],
+    [/substitution/ig,'sustitucion'],
     [/offside/ig,'fuera de juego'],
     [/penalty/ig,'penal'],
-    [/free kick/ig,'tiro libre'],
-    [/corner/ig,'tiro de esquina'],
-    [/shot/ig,'remate'],
-    [/saved/ig,'atajado'],
-    [/foul/ig,'falta']
+    [/goal/ig,'gol'],
+    [/foul/ig,'falta'],
+    [/because of an injury/ig,'por una lesion'],
+    [/first half begins\.?/ig,'comenzo el primer tiempo.'],
+    [/second half begins\.?/ig,'comenzo el segundo tiempo.'],
+    [/first half ends\.?/ig,'final del primer tiempo.'],
+    [/second half ends\.?/ig,'final del segundo tiempo.'],
+    [/match ends\.?/ig,'final del partido.'],
+    [/replaces/ig,'reemplaza a'],
+    [/is shown the yellow card/ig,'recibe tarjeta amarilla'],
+    [/is shown the red card/ig,'recibe tarjeta roja'],
+    [/ by /ig,' de '],
+    [/ following /ig,' tras '],
+    [/ from /ig,' desde '],
+    [/ with /ig,' con '],
+    [/ and /ig,' y ']
   ];
   reps.forEach(([from,to])=>{ out=out.replace(from,to); });
+
+  out=out.replace(/\s+/g,' ').trim();
+  if(!/[a-zA-Z]/.test(out.replace(/[A-Z][a-z]+\s*[A-Z]?[a-z]*/g,''))) return out;
   return out;
 }
 
@@ -1000,52 +1039,73 @@ function closeStats() {
   document.getElementById('statsv').classList.remove('on');
   document.getElementById('app').classList.remove('hidden');
 }
-function renderStats(eid) {
+async function renderStats(eid) {
+  const reqId=++statsReqToken;
   const ev=allEvents.find(e=>e.id===eid); if(!ev) return;
-  const comp=ev.competitions?.[0]; if(!comp) return;
-  const h=comp.competitors.find(x=>x.homeAway==='home'), a=comp.competitors.find(x=>x.homeAway==='away');
+  const baseComp=ev.competitions?.[0]; if(!baseComp) return;
+
+  const stCont=document.getElementById('st-cont');
+  if(stCont) stCont.innerHTML=`<div class="empty" style="padding:14px"><p style="font-size:11px">Cargando estadisticas reales...</p></div>`;
+
+  let summary=null;
+  try {
+    const r=await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${eid}`);
+    if(r.ok) summary=await r.json();
+  } catch {}
+  if(reqId!==statsReqToken||statsEid!==eid) return;
+
+  const sumComp=summary?.header?.competitions?.[0]||null;
+  const comp=sumComp||baseComp;
+  const h=comp.competitors?.find(x=>x.homeAway==='home')||baseComp.competitors.find(x=>x.homeAway==='home');
+  const a=comp.competitors?.find(x=>x.homeAway==='away')||baseComp.competitors.find(x=>x.homeAway==='away');
+  if(!h||!a) return;
+
   const {lbl,isLive,isFin}=statusInfo(comp);
   const hs=parseInt(h.score)||0, as2=parseInt(a.score)||0;
   const hasD=isLive||isFin;
   document.getElementById('st-title').textContent=`${a.team.abbreviation} vs ${h.team.abbreviation}`;
-  const hSt=h.statistics||[], aSt=a.statistics||[];
-  const getSt=(arr,n)=>parseFloat(arr.find(x=>x.name===n||x.abbreviation===n)?.value||0);
-  const rng=(b,v)=>Math.max(0,Math.round(b+(Math.random()*v-v/2)));
-  let stats=[], fromAPI=false;
-  if(hasD&&hSt.length>0&&getSt(hSt,'possessionPct')>0){
-    fromAPI=true;
-    stats=[
-      {l:'Posesion',hn:getSt(hSt,'possessionPct'),an:getSt(aSt,'possessionPct'),pct:true},
-      {l:'Tiros totales',hn:getSt(hSt,'totalShots'),an:getSt(aSt,'totalShots')},
-      {l:'Al arco',hn:getSt(hSt,'shotsOnTarget'),an:getSt(aSt,'shotsOnTarget')},
-      {l:'Corners',hn:getSt(hSt,'cornerKicks'),an:getSt(aSt,'cornerKicks')},
-      {l:'Faltas',hn:getSt(hSt,'foulsCommitted'),an:getSt(aSt,'foulsCommitted')},
-      {l:'Amarillas',hn:getSt(hSt,'yellowCards'),an:getSt(aSt,'yellowCards')},
-      {l:'Rojas',hn:getSt(hSt,'redCards'),an:getSt(aSt,'redCards')},
-      {l:'Fuera de juego',hn:getSt(hSt,'offsides'),an:getSt(aSt,'offsides')},
-      {l:'Pases %',hn:getSt(hSt,'passingAccuracy'),an:getSt(aSt,'passingAccuracy'),pct:true},
-      {l:'Atajadas',hn:getSt(hSt,'saves'),an:getSt(aSt,'saves')},
-    ];
-  } else if(hasD){
-    stats=[
-      {l:'Posesion',hn:rng(52,22),isPoss:true},
-      {l:'Tiros totales',hn:rng(12,8),an:rng(8,6)},
-      {l:'Al arco',hn:rng(5,4),an:rng(3,3)},
-      {l:'Corners',hn:rng(5,4),an:rng(4,3)},
-      {l:'Faltas',hn:rng(11,6),an:rng(9,6)},
-      {l:'Amarillas',hn:rng(1,2),an:rng(1,2)},
-      {l:'Fuera de juego',hn:rng(2,3),an:rng(2,3)},
-      {l:'Pases %',hn:rng(82,12),an:rng(76,14),pct:true},
-      {l:'Atajadas',hn:rng(4,3),an:rng(5,4)},
-    ];
-  }
-  stats.forEach(s=>{
-    if(s.isPoss) s.an=100-s.hn;
-    s.hv=(s.pct||s.isPoss)?s.hn+'%':s.hn;
-    s.av=(s.pct||s.isPoss)?s.an+'%':s.an;
-  });
+
+  const boxTeams=summary?.boxscore?.teams||[];
+  const hBox=boxTeams.find(t=>t.homeAway==='home')||{};
+  const aBox=boxTeams.find(t=>t.homeAway==='away')||{};
+  const hSt=hBox.statistics||[];
+  const aSt=aBox.statistics||[];
+
+  const getSt=(arr,n)=>{
+    const f=arr.find(x=>x.name===n||x.abbreviation===n);
+    if(!f) return null;
+    const raw=f.displayValue??f.value??'';
+    if(raw===null||raw===undefined||raw==='') return null;
+    const v=parseFloat(String(raw).replace('%','').replace(',','.'));
+    return Number.isFinite(v)?v:null;
+  };
+
+  const statDefs=[
+    {l:'Posesion',k:'possessionPct',pct:true},
+    {l:'Tiros totales',k:'totalShots'},
+    {l:'Al arco',k:'shotsOnTarget'},
+    {l:'Corners',k:'cornerKicks'},
+    {l:'Faltas',k:'foulsCommitted'},
+    {l:'Amarillas',k:'yellowCards'},
+    {l:'Rojas',k:'redCards'},
+    {l:'Fuera de juego',k:'offsides'},
+    {l:'Pases %',k:'passingAccuracy',pct:true},
+    {l:'Atajadas',k:'saves'}
+  ];
+
+  const stats=statDefs
+    .map(d=>({l:d.l,hn:getSt(hSt,d.k),an:getSt(aSt,d.k),pct:!!d.pct}))
+    .filter(s=>s.hn!==null||s.an!==null)
+    .map(s=>({
+      ...s,
+      hn:s.hn??0,
+      an:s.an??0,
+      hv:(s.pct?`${s.hn??0}%`:`${s.hn??0}`),
+      av:(s.pct?`${s.an??0}%`:`${s.an??0}`)
+    }));
+
   const stHtml=stats.map(s=>{
-    const tot=(s.isPoss||s.pct)?100:((s.hn||0)+(s.an||0))||1;
+    const tot=s.pct?100:((s.hn||0)+(s.an||0))||1;
     const hp=Math.round((s.hn||0)/tot*100), ap=Math.round((s.an||0)/tot*100);
     return `<div class="strow">
       <div class="svv aw">${s.av}</div>
@@ -1055,18 +1115,98 @@ function renderStats(eid) {
       <div class="svv">${s.hv}</div>
     </div>`;
   }).join('');
-  const evs=comp.details||[];
-  const tlHtml=evs.length?`<div class="stlbl">Incidencias</div><div class="tl">${evs.map(ev2=>{
-    const clk=ev2.clock?.displayValue||'', ply=ev2.athletesInvolved?.[0]?.displayName||'';
-    const id=ev2.type?.id, tp=(ev2.type?.text||'').toLowerCase();
-    const isG=id==='50'||tp.includes('goal'), isY=id==='57'||tp.includes('yellow'), isR=id==='93'||tp.includes('red');
-    const ic=isG?'&#x26BD;':isY?'&#x1F7E8;':isR?'&#x1F7E5;':'&#x2194;';
-    const side=ev2.team?.id===h.team.id?'(Local)':'(Visit.)';
-    return `<div class="ti"><div class="tdot ${isG?'g':isY?'y':isR?'r':''}"></div>
-      <div class="tcon"><div class="tmin">${clk}'</div>
-      <div class="tdesc">${ic} ${ply} <span style="color:var(--mu);font-weight:400">${side}</span></div></div></div>`;
+
+  const norm=s=>String(s||'').toLowerCase().trim();
+  const homeNames=[h.team.displayName,h.team.shortDisplayName,h.team.name,h.team.abbreviation,h.team.location].map(norm).filter(Boolean);
+  const awayNames=[a.team.displayName,a.team.shortDisplayName,a.team.name,a.team.abbreviation,a.team.location].map(norm).filter(Boolean);
+  const sideFrom=(teamId='',text='')=>{
+    if(teamId&&teamId===h.team.id) return '(Local)';
+    if(teamId&&teamId===a.team.id) return '(Visit.)';
+    const m=String(text||'').match(/\(([^)]+)\)/);
+    const tn=norm(m?.[1]||'');
+    if(!tn) return '';
+    if(homeNames.some(n=>n===tn||n.includes(tn)||tn.includes(n))) return '(Local)';
+    if(awayNames.some(n=>n===tn||n.includes(tn)||tn.includes(n))) return '(Visit.)';
+    return '';
+  };
+
+  const rawInc=(sumComp?.details&&sumComp.details.length)?sumComp.details:(summary?.keyEvents||[]);
+  const baseIncidents=(rawInc||[]).map(ev2=>{
+    const clk=ev2.clock?.displayValue||ev2.time?.displayValue||'';
+    const ply=ev2.participants?.[0]?.athlete?.displayName||ev2.athletesInvolved?.[0]?.displayName||'';
+    const descRaw=ev2.text||ev2.detail||ev2.type?.text||ev2.type?.name||'';
+    const descLc=descRaw.toLowerCase();
+    const ttxt=(ev2.type?.text||ev2.type?.name||'').toLowerCase();
+    const isG=ev2.scoringPlay===true||ev2.ownGoal===true||ttxt.includes('goal')||ttxt.includes('gol');
+    const isR=ev2.redCard===true||ttxt.includes('red')||descLc.includes('red card')||descLc.includes('tarjeta roja');
+    const isY=ev2.yellowCard===true||ttxt.includes('yellow')||descLc.includes('yellow card')||descLc.includes('tarjeta amarilla');
+    const isSub=ttxt.includes('substitution')||descLc.includes('substitution')||descLc.includes('replaces');
+    const textRaw=(ply&&descRaw)?`${ply} - ${descRaw}`:(ply||descRaw||'Incidencia');
+    const text=toSpanishComment(textRaw);
+    return {
+      clk,
+      text,
+      teamId:ev2.team?.id||'',
+      isG,
+      isY,
+      isR,
+      isSub,
+      side:sideFrom(ev2.team?.id||'',text),
+      tVal:ev2.clock?.value??ev2.time?.value??null,
+      seq:ev2.sequence??null
+    };
+  });
+
+  const commentaryIncidents=(summary?.commentary||[])
+    .filter(c=>/yellow card|red card|substitution|replaces/i.test(c.text||''))
+    .map(c=>{
+      const t=String(c.text||'').trim();
+      const lc=t.toLowerCase();
+      return {
+        clk:c.time?.displayValue||'',
+        text:toSpanishComment(t),
+        teamId:'',
+        isG:false,
+        isY:lc.includes('yellow card'),
+        isR:lc.includes('red card'),
+        isSub:lc.includes('substitution')||lc.includes('replaces'),
+        side:sideFrom('',t),
+        tVal:c.time?.value??null,
+        seq:c.sequence??null
+      };
+    });
+
+  const seen=new Set();
+  const parseClkValue=clk=>{
+    const s=String(clk||'').replace(/\s/g,'');
+    const m=s.match(/^(\d+)(?:'\+?(\d+))?/);
+    if(!m) return Number.MAX_SAFE_INTEGER;
+    return (parseInt(m[1],10)||0)*60 + (parseInt(m[2]||'0',10)||0);
+  };
+
+  const incidents=[...baseIncidents,...commentaryIncidents].filter(x=>{
+    const k=`${x.clk}|${x.text}|${x.isY}|${x.isR}|${x.isSub}`;
+    if(seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  }).sort((a,b)=>{
+    const ta=a.tVal??parseClkValue(a.clk);
+    const tb=b.tVal??parseClkValue(b.clk);
+    if(ta!==tb) return ta-tb;
+    const sa=a.seq??Number.MAX_SAFE_INTEGER;
+    const sb=b.seq??Number.MAX_SAFE_INTEGER;
+    return sa-sb;
+  });
+
+  const tlHtml=incidents.length?`<div class="stlbl">Incidencias</div><div class="tl">${incidents.map(x=>{
+    const ic=x.isG?'&#x26BD;':x.isY?'&#x1F7E8;':x.isR?'&#x1F7E5;':x.isSub?'&#x2194;':'&#x2194;';
+    const side=x.side||'';
+    return `<div class="ti"><div class="tdot ${x.isG?'g':x.isY?'y':x.isR?'r':''}"></div>
+      <div class="tcon"><div class="tmin">${x.clk}</div>
+      <div class="tdesc">${ic} ${x.text} <span style="color:var(--mu);font-weight:400">${side}</span></div></div></div>`;
   }).join('')}</div>`:'';
-  const od=comp.odds?.[0];
+
+  const od=(comp.odds?.[0]||baseComp.odds?.[0]||null);
   let odHtml='';
   if(od){
     const hml=od.moneyline?.home?.close?.odds||od.moneyline?.home?.open?.odds||'--';
@@ -1084,6 +1224,7 @@ function renderStats(eid) {
       <div class="och"><div class="olb">Under ${ou}</div><div class="ov">${un2}</div></div>
     </div>`;
   }
+
   document.getElementById('st-cont').innerHTML=`
     <div class="sboard">
       <div class="ste2">
@@ -1097,7 +1238,7 @@ function renderStats(eid) {
         <div class="stt"><img class="sfl2" src="${flag(h.team.abbreviation)}" onerror="this.style.opacity=.2" alt=""><div class="stname">${nameES(h.team.shortDisplayName||h.team.displayName)}</div></div>
       </div>
     </div>
-    ${stats.length?`<div class="stlbl">Estadisticas${!fromAPI&&hasD?' <span style="font-size:9px;color:var(--mu2)">(estimadas)</span>':''}</div>${stHtml}`:`<div class="empty" style="padding:14px"><p style="font-size:11px">Estadisticas disponibles durante el partido</p></div>`}
+    ${stats.length?`<div class="stlbl">Estadisticas</div>${stHtml}`:`<div class="empty" style="padding:14px"><p style="font-size:11px">Estadisticas reales no disponibles para este partido</p></div>`}
     ${odHtml}${tlHtml}
     <div style="height:24px"></div>`;
 }
